@@ -1,81 +1,48 @@
-name: Deploy to Cloudflare and GitHub Pages
+name: Build and deploy to gh-pages
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 允许 action 推送到 gh-pages 分支
 
 jobs:
-  build:
-    runs-on: self-hosted
-    timeout-minutes: 4320
-    name: Build Project
-    env:
-      ENABLE_DOCUSAURUS_EXPERIMENTAL: 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: npm install
-      - name: Build
-        run: npm run build_32g
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifact
-          path: build
-          retention-days: 1  # Keeps the artifact for 1 day
-
-  #  deploy-cloudflare:
-  #    runs-on: ubuntu-latest
-  #    needs: build
-  #    name: Deploy to Cloudflare
-  #    steps:
-  #      - uses: actions/checkout@v4
-  #      - name: Download build artifact
-  #        uses: actions/download-artifact@v4
-  #        with:
-  #          name: build-artifact
-  #          path: build
-  #      - name: Deploy to Cloudflare Pages
-  #        uses: cloudflare/wrangler-action@v3
-  #        with:
-  #          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  #          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-  #          command: pages deploy build --project-name=cool-coding
-
-  deploy-github-pages:
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
+  build-and-deploy:
     runs-on: ubuntu-latest
-    needs: build
-    name: Deploy to GitHub Pages
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifact
-          path: build
-      - name: Deploy to GitHub Pages
-        uses: actions/upload-pages-artifact@v3  # Updated to v4
-        with:
-          path: build
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
 
-  # submit-url-seo:
-  #   name: Submit URL to IndexNow
-  #   runs-on: ubuntu-latest
-  #   needs: [ build, deploy-github-pages ]
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install Dependencies
-  #       run: pip install requests
-  #     - name: Submit URL to IndexNow
-  #       run: |
-  #         bash submit_url.sh
-          
-          
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build --if-present
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          publish_branch: gh-pages
+          # 若你希望每次只提交一次（不保留历史），可加:
+          # single_commit: true
