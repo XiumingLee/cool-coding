@@ -5,7 +5,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "cross-env NODE_OPTIONS=--max-old-space-size=16384 docusaurus start",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 docusaurus build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=16384 docusaurus build",
     "build_16g": "cross-env NODE_OPTIONS=--max-old-space-size=16384 docusaurus build",
     "build_24g": "cross-env NODE_OPTIONS=--max-old-space-size=24576 docusaurus build",
     "build_32g": "cross-env NODE_OPTIONS=--max-old-space-size=32768 docusaurus build",
